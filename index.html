@@ -1,0 +1,71 @@
+
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lindas Gröna Sköna – Del 2 (VG): TMP102 på ESP32-C3</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif;line-height:1.6;margin:2rem;max-width:900px}
+    pre{background:#f6f8fa;padding:1rem;border-radius:12px;overflow:auto}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    header{margin-bottom:1rem}
+    .card{border:1px solid #e5e7eb;border-radius:16px;padding:1rem;margin:1rem 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+    img{max-width:100%;height:auto;border-radius:12px}
+    h1,h2,h3{line-height:1.2}
+    .pill{display:inline-block;background:#eef2ff;border-radius:999px;padding:.25rem .75rem;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lindas Gröna Sköna – Del 2 (VG)</h1>
+    <div class="pill">ESP32-C3 · TMP102 · I²C</div>
+  </header>
+
+  <div class="card">
+    <h2>Om projektet</h2>
+    <p>Modulär drivrutin i C för TMP102 på ESP32-C3 via I²C. Appen läser temperatur var 5:e sekund och skriver till UART.</p>
+  </div>
+
+  <div class="card">
+    <h2>Koppling</h2>
+    <img src="assets/wiring.png" alt="Wiring diagram">
+    <ul>
+      <li>VDD 3.3V, GND GND</li>
+      <li>SDA → GPIO4, SCL → GPIO5 (pull-ups 4.7k–10k till 3.3V)</li>
+      <li>Adress: 0x48</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Bygg & Flash (ESP-IDF)</h2>
+<pre><code>idf.py set-target esp32c3
+idf.py build
+idf.py -p /dev/ttyUSB0 flash monitor</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>main.c (utdrag)</h2>
+<pre><code>#include &lt;stdio.h&gt;
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "temp_driver.h"
+
+extern temp_sensor_t TMP102;
+
+void app_main(void) {
+    printf("TMP102 demo startar...\n");
+    if (TMP102.init() != 0) { printf("Fel: init\n"); return; }
+    while (1) {
+        int16_t raw = 0;
+        int r = TMP102.read_raw(&raw);
+        if (r == 0) printf("Temp: raw=%d, %.2f C\n", raw, TMP102.raw_to_celsius(raw));
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+}
+</code></pre>
+  </div>
+
+  <p>Se <code>README.md</code> för mer detaljer. Lycka till! 🌱</p>
+</body>
+</html>
