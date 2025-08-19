@@ -43,6 +43,7 @@ idf.py -p /dev/ttyUSB0 flash monitor
    ├─ temp_driver.h
    └─ tmp102.c
 ```
+## Demo website: https://notblonde.github.io/inbyggda-system-del2/
 
 ## Exempeloutput
 ```
