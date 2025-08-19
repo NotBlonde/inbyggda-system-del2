@@ -1,71 +1,206 @@
-
 <!doctype html>
-<html lang="sv">
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Lindas Gröna Sköna – Del 2 (VG): TMP102 på ESP32-C3</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ESP32‑C3 + TMP102 — Live Demo (simulated)</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif;line-height:1.6;margin:2rem;max-width:900px}
-    pre{background:#f6f8fa;padding:1rem;border-radius:12px;overflow:auto}
-    code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    header{margin-bottom:1rem}
-    .card{border:1px solid #e5e7eb;border-radius:16px;padding:1rem;margin:1rem 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-    img{max-width:100%;height:auto;border-radius:12px}
-    h1,h2,h3{line-height:1.2}
-    .pill{display:inline-block;background:#eef2ff;border-radius:999px;padding:.25rem .75rem;font-size:.9rem}
+    :root { --bg:#0b1020; --panel:#111735; --ink:#e6e9f3; --muted:#96a0c8; --accent:#82b1ff; --ok:#7cf; --err:#ff8a80; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:2rem; background:linear-gradient(180deg,#0b1020,#0b1020 60%,#0e1430); color:var(--ink); font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    h1 { margin:0 0 1rem 0; font-size:1.4rem; font-weight:700; letter-spacing:.2px; color:#fff; }
+    .sub { color:var(--muted); font-size:.95rem; margin-bottom:1.25rem; }
+    .wrap { max-width:920px; margin:0 auto; }
+    .card { background:var(--panel); border:1px solid #1b2550; border-radius:16px; padding:1rem; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+    .row { display:flex; gap:1rem; flex-wrap:wrap; align-items:center; }
+    .controls { display:flex; gap:.6rem; flex-wrap:wrap; }
+    button { border:1px solid #2a3a7a; background:#122050; color:#eaf1ff; padding:.6rem .9rem; border-radius:12px; cursor:pointer; font-weight:600; }
+    button:hover { filter:brightness(1.1); }
+    button.secondary { background:#0f1a3f; }
+    button.danger { background:#421e22; border-color:#6b2a31; color:#ffd9d6; }
+    .status { margin-left:auto; display:flex; align-items:center; gap:.5rem; color:var(--muted); }
+    .dot { width:10px; height:10px; border-radius:50%; background:#394068; box-shadow:0 0 0 2px #1b2550 inset; }
+    .dot.live { background:#37e3a1; box-shadow:0 0 24px #37e3a180; }
+    .meter { display:flex; gap:1rem; margin-top:.75rem; }
+    .tile { flex:1 1 180px; background:#0e1533; border:1px solid #1b2550; border-radius:14px; padding:.85rem; }
+    .tile h3 { margin:0; font-size:.8rem; color:var(--muted); font-weight:600; letter-spacing:.2px; }
+    .tile .v { font-size:1.6rem; font-weight:800; margin-top:.35rem; }
+    .tile .v.ok { color:#a7e8ff; }
+    .tile .v.err { color:var(--err); }
+    .log { margin-top:1rem; background:#0b112b; border:1px solid #18255f; border-radius:14px; padding:.75rem; height:360px; overflow:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; font-size:.92rem; }
+    .line { white-space:pre; }
+    .line .ts { color:#7da2ff; }
+    .line .lv.ok { color:#b9ffc7; }
+    .line .lv.err { color:#ffb4ac; }
+    .hint { margin-top:.75rem; color:var(--muted); font-size:.9rem; }
+    .switcher { display:flex; gap:.5rem; align-items:center; color:var(--muted); }
+    select, input[type="number"] { background:#0f1a3f; color:#e6e9f3; border:1px solid #2a3a7a; border-radius:10px; padding:.4rem .5rem; }
+    a { color:var(--accent); text-decoration:none; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Lindas Gröna Sköna – Del 2 (VG)</h1>
-    <div class="pill">ESP32-C3 · TMP102 · I²C</div>
-  </header>
+  <div class="wrap">
+    <h1>ESP32‑C3 + TMP102 — Live Demo (simulated)</h1>
+    <div class="sub">A browser demo that mimics your firmware: reads every 5 s, prints UART logs, and occasionally shows I²C errors (timeout/NACK).</div>
 
-  <div class="card">
-    <h2>Om projektet</h2>
-    <p>Modulär drivrutin i C för TMP102 på ESP32-C3 via I²C. Appen läser temperatur var 5:e sekund och skriver till UART.</p>
+    <div class="card">
+      <div class="row">
+        <div class="controls">
+          <button id="startBtn">▶ Start demo</button>
+          <button id="stopBtn" class="secondary">⏸ Stop</button>
+          <button id="clearBtn" class="danger">🗑 Clear log</button>
+        </div>
+        <div class="status">
+          <div id="dot" class="dot"></div>
+          <div id="statTxt">idle</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:.75rem">
+        <div class="switcher">
+          Interval (s):
+          <input id="period" type="number" min="1" max="30" step="1" value="5" />
+        </div>
+        <div class="switcher">
+          Error rate:
+          <select id="errRate">
+            <option value="0.00">0%</option>
+            <option value="0.02">2%</option>
+            <option value="0.05" selected>5%</option>
+            <option value="0.10">10%</option>
+          </select>
+        </div>
+        <div class="switcher">
+          Start value:
+          <input id="startVal" type="number" step="0.1" value="20.5" />
+        </div>
+      </div>
+
+      <div class="meter">
+        <div class="tile">
+          <h3>Temperature (°C)</h3>
+          <div id="tempNow" class="v ok">—</div>
+        </div>
+        <div class="tile">
+          <h3>Raw 12‑bit</h3>
+          <div id="rawNow" class="v ok">—</div>
+        </div>
+        <div class="tile">
+          <h3>Last event</h3>
+          <div id="lastEvt" class="v ok">ready</div>
+        </div>
+      </div>
+
+      <div id="log" class="log" aria-live="polite"></div>
+      <div class="hint">This simulates your <code>app_main()</code> loop calling <code>read_raw()</code> and <code>raw_to_celsius()</code> every N seconds, with rare timeouts/NACKs—just like the real firmware.</div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Koppling</h2>
-    <img src="assets/wiring.png" alt="Wiring diagram">
-    <ul>
-      <li>VDD 3.3V, GND GND</li>
-      <li>SDA → GPIO4, SCL → GPIO5 (pull-ups 4.7k–10k till 3.3V)</li>
-      <li>Adress: 0x48</li>
-    </ul>
-  </div>
-
-  <div class="card">
-    <h2>Bygg & Flash (ESP-IDF)</h2>
-<pre><code>idf.py set-target esp32c3
-idf.py build
-idf.py -p /dev/ttyUSB0 flash monitor</code></pre>
-  </div>
-
-  <div class="card">
-    <h2>main.c (utdrag)</h2>
-<pre><code>#include &lt;stdio.h&gt;
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "temp_driver.h"
-
-extern temp_sensor_t TMP102;
-
-void app_main(void) {
-    printf("TMP102 demo startar...\n");
-    if (TMP102.init() != 0) { printf("Fel: init\n"); return; }
-    while (1) {
-        int16_t raw = 0;
-        int r = TMP102.read_raw(&raw);
-        if (r == 0) printf("Temp: raw=%d, %.2f C\n", raw, TMP102.raw_to_celsius(raw));
-        vTaskDelay(pdMS_TO_TICKS(5000));
+  <script>
+    // --- Simulation helpers (matches firmware semantics) ---
+    const lsbC = 0.0625; // TMP102: 0.0625 °C per LSB
+    const toRaw12 = c => Math.round(c / lsbC);            // °C -> 12-bit signed
+    const fromRaw12 = raw => raw * lsbC;                  // 12-bit signed -> °C
+    function signClamp12(v){ // clamp to signed 12-bit range
+      if (v > 2047) v = 2047;
+      if (v < -2048) v = -2048;
+      return v;
     }
-}
-</code></pre>
-  </div>
 
-  <p>Se <code>README.md</code> för mer detaljer. Lycka till! 🌱</p>
+    // DOM
+    const logEl = document.getElementById('log');
+    const tempNow = document.getElementById('tempNow');
+    const rawNow  = document.getElementById('rawNow');
+    const lastEvt = document.getElementById('lastEvt');
+    const dot     = document.getElementById('dot');
+    const statTxt = document.getElementById('statTxt');
+    const startBtn= document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const clearBtn= document.getElementById('clearBtn');
+    const errRate = document.getElementById('errRate');
+    const period  = document.getElementById('period');
+    const startVal= document.getElementById('startVal');
+
+    let tHandle = null;
+    let currentC = parseFloat(startVal.value || "20.5");
+
+    function ts(){
+      const d = new Date();
+      return d.toLocaleTimeString([], {hour12:false});
+    }
+
+    function log(lineHtml){
+      const div = document.createElement('div');
+      div.className = 'line';
+      div.innerHTML = lineHtml;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setLive(on){
+      dot.classList.toggle('live', !!on);
+      statTxt.textContent = on ? 'running' : 'idle';
+    }
+
+    function step(){
+      // small random drift + occasional nudge to simulate environment
+      const drift = (Math.random()-0.5)*0.10;           // +/- 0.05 °C
+      const nudge = (Math.random()<0.05) ? (Math.random()-0.5)*0.4 : 0; // rare +/-0.2 °C
+      currentC = Math.max(15, Math.min(30, currentC + drift + nudge));
+
+      const errP = parseFloat(errRate.value || "0");
+      const isErr = Math.random() < errP;
+      const errKind = Math.random() < 0.6 ? "timeout" : "NACK/bus";
+
+      if (isErr){
+        lastEvt.textContent = errKind;
+        lastEvt.className = 'v err';
+        tempNow.textContent = '—';
+        rawNow.textContent = '—';
+        tempNow.className = 'v err';
+        rawNow.className = 'v err';
+        log(`<span class="ts">[${ts()}]</span> <span class="lv err">Error:</span> I2C ${errKind}`);
+        return;
+      }
+
+      // produce raw 12-bit and round-trip it like the firmware
+      let raw12 = signClamp12(toRaw12(currentC));
+      const c = fromRaw12(raw12);
+
+      lastEvt.textContent = 'OK';
+      lastEvt.className = 'v ok';
+      tempNow.textContent = c.toFixed(2) + ' °C';
+      rawNow.textContent  = raw12.toString();
+      tempNow.className = 'v ok';
+      rawNow.className = 'v ok';
+
+      log(`<span class="ts">[${ts()}]</span> <span class="lv ok">Temp:</span> raw=${raw12}, ${c.toFixed(2)} C`);
+    }
+
+    function start(){
+      if (tHandle) return;
+      // reset to chosen start value when (re)starting
+      currentC = parseFloat(startVal.value || "20.5");
+      setLive(true);
+      log(`<span class="ts">[${ts()}]</span> <span class="lv ok">TMP102 demo start...</span>`);
+      step(); // immediate first sample
+      tHandle = setInterval(step, Math.max(1, (+period.value||5)) * 1000);
+    }
+
+    function stop(){
+      if (tHandle){ clearInterval(tHandle); tHandle = null; }
+      setLive(false);
+      log(`<span class="ts">[${ts()}]</span> <span class="lv err">stopped</span>`);
+    }
+
+    startBtn.addEventListener('click', start);
+    stopBtn.addEventListener('click',  stop);
+    clearBtn.addEventListener('click', () => { logEl.innerHTML = ''; });
+
+    // keep interval live if user changes it mid-run
+    period.addEventListener('change', () => {
+      if (tHandle){ clearInterval(tHandle); tHandle = setInterval(step, Math.max(1,(+period.value||5))*1000); }
+    });
+  </script>
 </body>
 </html>
