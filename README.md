@@ -45,6 +45,28 @@ idf.py -p /dev/ttyUSB0 flash monitor
 ```
 ## Demo website: https://notblonde.github.io/inbyggda-system-del2/
 
+## Köra i webbläsaren (Wokwi – utan hårdvara)
+
+Detta projekt kan demonstreras helt i webbläsaren med **Wokwi** (ESP32‑C3 Arduino).
+Simuleringen efterliknar firmwareflödet: mäter var 5:e sekund, skriver UART‑loggar
+och visar ibland simulerade I²C‑fel (timeout/NACK).
+
+### Snabbstart (3 steg)
+1. Öppna https://wokwi.com/ → **New Project** → **ESP32‑C3 Arduino**.
+2. Ersätt innehållet i `sketch.ino` med koden nedan (se “Wokwi‑sketch”).
+3. Skapa en fil `diagram.json` (Project files → Add file) och klistra in innehållet
+   från “diagram.json” nedan. Klicka **Run** och öppna **Serial Monitor**.
+
+### Vad som visas
+```text
+TMP102 demo startar...
+TMP102 init OK.
+Temp: raw=328, 20.50 C
+...
+Fel: I2C timeout
+Fel: I2C NACK/busfel
+
+
 ## Exempeloutput
 ```
 TMP102 demo startar...
