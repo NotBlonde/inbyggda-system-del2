@@ -54,7 +54,7 @@ och visar ibland simulerade I²C‑fel (timeout/NACK).
 ### Snabbstart (3 steg)
 1. Öppna https://wokwi.com/ → **New Project** → **ESP32‑C3 Arduino**.
 2. Ersätt innehållet i `sketch.ino` med koden nedan (se “Wokwi‑sketch”). 
-https://github.com/NotBlonde/inbyggda-system-del2/blob/main/sketch.ino
+[https://github.com/NotBlonde/inbyggda-system-del2/blob/main/sketch.ino](https://github.com/NotBlonde/inbyggda-system-del2/blob/main/Wokwi%E2%80%91sketch.cpp)
 3. Skapa en fil `diagram.json` (Project files → Add file) och klistra in innehållet
    från “diagram.json” nedan. Klicka **Run** och öppna **Serial Monitor**.
 https://github.com/NotBlonde/inbyggda-system-del2/blob/main/diagram.json
